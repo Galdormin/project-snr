@@ -5,7 +5,6 @@
 
 mod asset_tracking;
 mod audio;
-mod demo;
 #[cfg(feature = "dev")]
 mod dev_tools;
 mod menus;
@@ -13,6 +12,8 @@ mod screens;
 mod theme;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
+
+use crate::theme::palette;
 
 fn main() -> AppExit {
     App::new().add_plugins(AppPlugin).run()
@@ -47,7 +48,6 @@ impl Plugin for AppPlugin {
         app.add_plugins((
             asset_tracking::plugin,
             audio::plugin,
-            demo::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             menus::plugin,
@@ -69,6 +69,9 @@ impl Plugin for AppPlugin {
         // Set up the `Pause` state.
         app.init_state::<Pause>();
         app.configure_sets(Update, PausableSystems.run_if(in_state(Pause(false))));
+
+        // Add color background
+        app.insert_resource(ClearColor(palette::BACKGROUND_COLOR));
 
         // Spawn the main camera.
         app.add_systems(Startup, spawn_camera);

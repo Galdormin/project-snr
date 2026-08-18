@@ -1,16 +1,15 @@
 use bevy::prelude::*;
 
-/// #ddd369
-pub const LABEL_TEXT: Color = Color::srgb(0.867, 0.827, 0.412);
+/// #070b12
+pub const BACKGROUND_COLOR: Color = Color::srgb_u8(7, 11, 18);
 
-/// #fcfbcc
-pub const HEADER_TEXT: Color = Color::srgb(0.988, 0.984, 0.800);
+/// #5ef0c8
+pub const HEADER_TEXT: Color = Color::srgb_u8(94, 240, 200);
+pub const LABEL_TEXT: Color = HEADER_TEXT;
+pub const BUTTON_TEXT: Color = HEADER_TEXT;
 
-/// #ececec
-pub const BUTTON_TEXT: Color = Color::srgb(0.925, 0.925, 0.925);
-/// #4666bf
-pub const BUTTON_BACKGROUND: Color = Color::srgb(0.275, 0.400, 0.750);
-/// #6299d1
-pub const BUTTON_HOVERED_BACKGROUND: Color = Color::srgb(0.384, 0.600, 0.820);
-/// #3d4999
-pub const BUTTON_PRESSED_BACKGROUND: Color = Color::srgb(0.239, 0.286, 0.600);
+/// #2e7a68
+pub const BUTTON_BACKGROUND: Color = Color::srgb_u8(46, 122, 104);
+/// #4d9887
+pub const BUTTON_HOVERED_BACKGROUND: Color = Color::srgb_u8(77, 152, 135);
+pub const BUTTON_PRESSED_BACKGROUND: Color = BUTTON_HOVERED_BACKGROUND;
