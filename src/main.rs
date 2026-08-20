@@ -7,11 +7,13 @@ mod asset_tracking;
 mod audio;
 #[cfg(feature = "dev")]
 mod dev_tools;
+mod game;
 mod menus;
 mod screens;
 mod theme;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
+use bevy_enhanced_input::EnhancedInputPlugin;
 
 use crate::theme::palette;
 
@@ -44,12 +46,16 @@ impl Plugin for AppPlugin {
                 }),
         );
 
+        // Third Party Plugins
+        app.add_plugins(EnhancedInputPlugin);
+
         // Add other plugins.
         app.add_plugins((
             asset_tracking::plugin,
             audio::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
+            game::plugin,
             menus::plugin,
             screens::plugin,
             theme::plugin,
