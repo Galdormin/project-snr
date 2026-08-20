@@ -1,4 +1,4 @@
-//!
+//! Code for the terrain
 
 use avian2d::{
     collision::collider::{Collider, CollisionLayers},

@@ -5,13 +5,14 @@ use bevy::prelude::*;
 
 mod drone;
 mod ldtk;
+mod scan;
 mod terrain;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(PhysicsPlugins::default());
     app.insert_resource(Gravity(Vec2::ZERO));
 
-    app.add_plugins((ldtk::plugin, drone::plugin, terrain::plugin));
+    app.add_plugins((ldtk::plugin, drone::plugin, scan::plugin, terrain::plugin));
 }
 
 #[derive(Default, PhysicsLayer)]

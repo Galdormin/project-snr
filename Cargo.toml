@@ -10,8 +10,8 @@ serde = { version="1", features = ["derive"] }
 thiserror = "2"
 
 bevy = { version = "0.19", default-features = false, features = ["2d", "ui", "audio", "wayland"] }
-bevy_ecs_ldtk = { version = "0.15" }
-bevy_ecs_tilemap = "0.19"
+bevy_ecs_ldtk = { version = "0.15", default-features = false, features = ["internal_levels", "derive"]}
+bevy_ecs_tilemap = { version = "0.19", default-features = false }
 bevy_enhanced_input = "0.26"
 avian2d = "0.7"
 

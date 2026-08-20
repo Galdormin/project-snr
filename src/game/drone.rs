@@ -1,10 +1,10 @@
-//!
+//! Code for the drone
 
 use avian2d::prelude::*;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::LdtkEntity;
 use bevy_enhanced_input::{
-    action::Action,
+    action::{Action, events::Start},
     actions,
     binding::{Binding, relationship::Bindings},
     bindings,
@@ -13,7 +13,11 @@ use bevy_enhanced_input::{
     preset::bidirectional::Bidirectional,
 };
 
-use crate::{AppSystems, PausableSystems, game::PhysicLayer, screens::Screen};
+use crate::{
+    AppSystems, PausableSystems,
+    game::{PhysicLayer, scan::ActiveScan},
+    screens::Screen,
+};
 
 /// Forward/backward thrust applied while holding Z/S, in m/s².
 const LINEAR_THRUST: f32 = 400.0;
@@ -23,7 +27,7 @@ const ANGULAR_THRUST: f32 = 20.0;
 pub(super) fn plugin(app: &mut App) {
     app.add_input_context::<Drone>();
 
-    app.add_observer(bind_drone);
+    app.add_observer(bind_drone).add_observer(launch_scan);
 
     app.add_systems(
         Update,
@@ -88,11 +92,27 @@ struct Thrust;
 #[action_output(f32)]
 struct Rotation;
 
+#[derive(InputAction)]
+#[action_output(bool)]
+struct Scan;
+
 fn bind_drone(add: On<Add, Drone>, mut commands: Commands) {
     commands.entity(add.entity).insert(actions!(Drone[
+        (Action::<Scan>::new(), bindings![KeyCode::Space]),
         (Action::<Thrust>::new(), bindings![KeyCode::KeyW]),
         (Action::<Rotation>::new(), Bindings::spawn(Bidirectional::new(Binding::from(KeyCode::KeyA), Binding::from(KeyCode::KeyD)))),
     ]));
+}
+
+fn launch_scan(
+    _: On<Start<Scan>>,
+    mut commands: Commands,
+    drone: Single<&GlobalTransform, With<Drone>>,
+) {
+    commands.spawn((
+        ActiveScan::new(300.0),
+        Transform::from_translation(drone.translation()),
+    ));
 }
 
 fn apply_input_to_drone(

@@ -297,7 +297,7 @@
 					"entityInstances": [
 						{
 							"__identifier": "Drone",
-							"__grid": [55,30],
+							"__grid": [51,28],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 2, "x": 0, "y": 8, "w": 8, "h": 8 },
@@ -306,10 +306,10 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 6,
-							"px": [440,240],
+							"px": [408,224],
 							"fieldInstances": [],
-							"__worldX": -48,
-							"__worldY": -72
+							"__worldX": -80,
+							"__worldY": -88
 						}
 					]
 				},
