@@ -18,7 +18,13 @@ pub(super) fn plugin(app: &mut App) {
     );
 
     // Toggle Avian2d's hitbox/collider debug rendering.
-    app.add_plugins(PhysicsDebugPlugin);
+    app.add_plugins(PhysicsDebugPlugin).insert_gizmo_config(
+        PhysicsGizmos::default(),
+        GizmoConfig {
+            enabled: false,
+            ..default()
+        },
+    );
     app.add_systems(
         Update,
         toggle_debug_physics.run_if(input_just_pressed(TOGGLE_PHYSICS_KEY)),

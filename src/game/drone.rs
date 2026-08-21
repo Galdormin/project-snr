@@ -19,6 +19,8 @@ use crate::{
     screens::Screen,
 };
 
+/// Drone sprite size
+const SPRITE_SIZE: f32 = 8.0;
 /// Forward/backward thrust applied while holding Z/S, in m/s².
 const LINEAR_THRUST: f32 = 400.0;
 /// Turning thrust applied while holding Q/D, in rad/s².
@@ -36,12 +38,6 @@ pub(super) fn plugin(app: &mut App) {
             .run_if(in_state(Screen::Gameplay))
             .in_set(PausableSystems),
     );
-    app.add_systems(
-        PostUpdate,
-        sync_camera_to_drone
-            .after(TransformSystems::Propagate)
-            .run_if(in_state(Screen::Gameplay)),
-    );
 }
 
 /// Marker component for the Drone
@@ -52,8 +48,6 @@ pub struct Drone;
 /// LDtk Bundle for the Drone
 #[derive(Bundle, Default, LdtkEntity)]
 pub(super) struct DroneBundle {
-    #[sprite_sheet]
-    sprite: Sprite,
     drone: Drone,
     physic: PhysicDroneBundle,
 }
@@ -74,7 +68,11 @@ impl Default for PhysicDroneBundle {
     fn default() -> Self {
         Self {
             rigid_body: RigidBody::Dynamic,
-            collider: Collider::circle(8.0),
+            collider: Collider::triangle(
+                Vec2::new(-SPRITE_SIZE, -SPRITE_SIZE),
+                Vec2::new(0., SPRITE_SIZE),
+                Vec2::new(SPRITE_SIZE, -SPRITE_SIZE),
+            ),
             linear_damping: LinearDamping(1.0),
             angular_damping: AngularDamping(4.0),
             collision_layers: CollisionLayers::new(PhysicLayer::Drone, [PhysicLayer::Terrain]),
@@ -96,12 +94,19 @@ struct Rotation;
 #[action_output(bool)]
 struct Scan;
 
-fn bind_drone(add: On<Add, Drone>, mut commands: Commands) {
-    commands.entity(add.entity).insert(actions!(Drone[
-        (Action::<Scan>::new(), bindings![KeyCode::Space]),
-        (Action::<Thrust>::new(), bindings![KeyCode::KeyW]),
-        (Action::<Rotation>::new(), Bindings::spawn(Bidirectional::new(Binding::from(KeyCode::KeyA), Binding::from(KeyCode::KeyD)))),
-    ]));
+fn bind_drone(add: On<Add, Drone>, mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.entity(add.entity).insert((
+        Sprite {
+            image: asset_server.load("images/drone.png"),
+            custom_size: Some(Vec2::splat(SPRITE_SIZE)),
+            ..default()
+        },
+        actions!(Drone[
+            (Action::<Scan>::new(), bindings![KeyCode::Space]),
+            (Action::<Thrust>::new(), bindings![KeyCode::KeyW]),
+            (Action::<Rotation>::new(), Bindings::spawn(Bidirectional::new(Binding::from(KeyCode::KeyA), Binding::from(KeyCode::KeyD)))),
+        ]),
+    ));
 }
 
 fn launch_scan(
@@ -130,16 +135,4 @@ fn apply_input_to_drone(
 
     linear_acc.0 = Vec2::Y * thrust.then_some(1.0f32).unwrap_or_default() * LINEAR_THRUST;
     angular_acc.0 = ***rotation * ANGULAR_THRUST;
-}
-
-/// Keeps the camera locked on the drone's position and facing, so it translates
-/// and rotates together with it.
-fn sync_camera_to_drone(
-    drone: Single<&GlobalTransform, With<Drone>>,
-    mut camera: Single<&mut Transform, (With<Camera2d>, Without<Drone>)>,
-) {
-    let (_, rotation, translation) = drone.to_scale_rotation_translation();
-    camera.translation.x = translation.x;
-    camera.translation.y = translation.y;
-    camera.rotation = rotation;
 }

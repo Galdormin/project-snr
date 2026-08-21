@@ -78,9 +78,6 @@ impl Plugin for AppPlugin {
 
         // Add color background
         app.insert_resource(ClearColor(palette::BACKGROUND_COLOR));
-
-        // Spawn the main camera.
-        app.add_systems(Startup, spawn_camera);
     }
 }
 
@@ -104,7 +101,3 @@ struct Pause(pub bool);
 /// A system set for systems that shouldn't run while the game is paused.
 #[derive(SystemSet, Copy, Clone, Eq, PartialEq, Hash, Debug)]
 struct PausableSystems;
-
-fn spawn_camera(mut commands: Commands) {
-    commands.spawn((Name::new("Camera"), Camera2d));
-}
