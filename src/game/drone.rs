@@ -15,16 +15,19 @@ use bevy_enhanced_input::{
 
 use crate::{
     AppSystems, PausableSystems,
-    game::{PhysicLayer, scan::ActiveScan},
+    game::{PhysicLayer, scan::ActiveScan, sound::NoiseEvent},
     screens::Screen,
 };
 
 /// Drone sprite size
 const SPRITE_SIZE: f32 = 8.0;
 /// Forward/backward thrust applied while holding Z/S, in m/s².
-const LINEAR_THRUST: f32 = 400.0;
+const LINEAR_THRUST: f32 = 300.0;
 /// Turning thrust applied while holding Q/D, in rad/s².
-const ANGULAR_THRUST: f32 = 20.0;
+const ANGULAR_THRUST: f32 = 10.0;
+
+/// How often the engine emits a noise event while active.
+const NOISE_EMIT_INTERVAL: f32 = 0.3;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_input_context::<Drone>();
@@ -50,6 +53,38 @@ pub struct Drone;
 pub(super) struct DroneBundle {
     drone: Drone,
     physic: PhysicDroneBundle,
+    engine_power: EnginePower,
+    engine_noise_timer: EngineNoiseTimer,
+}
+
+/// The drone's engine power
+#[derive(Component, Reflect, Clone, Copy, Debug)]
+#[reflect(Component)]
+pub struct EnginePower {
+    pub linear: f32,
+    pub angular: f32,
+}
+
+impl Default for EnginePower {
+    fn default() -> Self {
+        Self {
+            linear: LINEAR_THRUST,
+            angular: ANGULAR_THRUST,
+        }
+    }
+}
+
+/// Tracks when the engine should emit its next noise event.
+#[derive(Component)]
+struct EngineNoiseTimer(Timer);
+
+impl Default for EngineNoiseTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(
+            NOISE_EMIT_INTERVAL,
+            TimerMode::Repeating,
+        ))
+    }
 }
 
 /// Physic bundle for the Drone
@@ -121,18 +156,38 @@ fn launch_scan(
 }
 
 fn apply_input_to_drone(
+    time: Res<Time>,
     thrust: Single<&Action<Thrust>>,
     rotation: Single<&Action<Rotation>>,
     mut drone: Single<
         (
             &mut ConstantLocalLinearAcceleration,
             &mut ConstantAngularAcceleration,
+            &EnginePower,
+            &mut EngineNoiseTimer,
+            &GlobalTransform,
         ),
         With<Drone>,
     >,
+    mut noise_events: MessageWriter<NoiseEvent>,
 ) {
-    let (linear_acc, angular_acc) = &mut *drone;
+    let (linear_acc, angular_acc, engine, noise_timer, transform) = &mut *drone;
 
-    linear_acc.0 = Vec2::Y * thrust.then_some(1.0f32).unwrap_or_default() * LINEAR_THRUST;
-    angular_acc.0 = ***rotation * ANGULAR_THRUST;
+    let new_linear_acc = thrust.then_some(engine.linear).unwrap_or_default();
+    let new_angular_acc = ***rotation * engine.angular;
+
+    linear_acc.0 = Vec2::Y * new_linear_acc;
+    angular_acc.0 = new_angular_acc;
+
+    if !noise_timer.0.tick(time.delta()).just_finished() {
+        return;
+    }
+
+    let intensity = new_linear_acc + new_angular_acc.abs() * 15.;
+    if intensity > 0.0 {
+        noise_events.write(NoiseEvent {
+            position: transform.translation().truncate(),
+            intensity,
+        });
+    }
 }

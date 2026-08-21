@@ -5,8 +5,8 @@ use bevy::prelude::*;
 
 use crate::{game::PhysicLayer, theme::palette};
 
-const DETECTED_POINTS_DISPLAY_DURATION: f32 = 3.0;
-const DETECTED_POINT_RADIUS: f32 = 2.0;
+const DETECTED_POINTS_DISPLAY_DURATION: f32 = 6.0;
+const DETECTED_POINT_RADIUS: f32 = 2.5;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Startup, load_sonar_point_assets);
@@ -107,6 +107,7 @@ fn handle_new_scan(
         let origin = transform.translation().truncate();
 
         let points: Vec<SonarPoint> = (0..360)
+            .filter(|angle| angle % 2 == 0)
             .map(|angle| Dir2::from_angle((angle as f32).to_radians()))
             .filter_map(|dir| {
                 if let Some(hit_data) =
@@ -121,10 +122,17 @@ fn handle_new_scan(
             .collect();
 
         for point in &points {
+            let local_position = point.position - origin
+                + Vec2::new(
+                    3.0 * rand::random_range(-1.0..=1.0),
+                    3.0 * rand::random_range(-1.0..=1.0),
+                );
+
             commands.spawn((
+                ChildOf(entity),
                 Mesh2d(sonar_point_assets.mesh.clone()),
                 MeshMaterial2d(materials.add(ColorMaterial::from(sonar_point_assets.color))),
-                Transform::from_translation(point.position.extend(1.0)),
+                Transform::from_translation(local_position.extend(1.0)),
                 SonarPointVisual::default(),
             ));
         }

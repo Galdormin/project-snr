@@ -7,6 +7,7 @@ mod camera;
 mod drone;
 mod ldtk;
 mod scan;
+mod sound;
 mod terrain;
 
 pub(super) fn plugin(app: &mut App) {
@@ -18,6 +19,7 @@ pub(super) fn plugin(app: &mut App) {
         camera::plugin,
         drone::plugin,
         scan::plugin,
+        sound::plugin,
         terrain::plugin,
     ));
 }
