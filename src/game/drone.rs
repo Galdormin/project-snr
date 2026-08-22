@@ -22,9 +22,9 @@ use crate::{
 /// Drone sprite size
 const SPRITE_SIZE: f32 = 8.0;
 /// Forward/backward thrust applied while holding Z/S, in m/s².
-const LINEAR_THRUST: f32 = 300.0;
+const LINEAR_THRUST: f32 = 100.0;
 /// Turning thrust applied while holding Q/D, in rad/s².
-const ANGULAR_THRUST: f32 = 10.0;
+const ANGULAR_THRUST: f32 = 5.0;
 
 /// How often the engine emits a noise event while active.
 const NOISE_EMIT_INTERVAL: f32 = 0.3;
@@ -152,6 +152,7 @@ fn launch_scan(
     commands.spawn((
         ActiveScan::new(300.0),
         Transform::from_translation(drone.translation()),
+        Visibility::default(),
     ));
 }
 

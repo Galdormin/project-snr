@@ -31,6 +31,7 @@ getrandom = { version = "0.4", features = ["wasm_js"] }
 # Default to a native dev build.
 default = ["dev_native"]
 dev = [
+    "bevy/debug",
     # Improve compile times for dev builds by linking Bevy as a dynamic library.
     "bevy/dynamic_linking",
     "bevy/bevy_dev_tools",
