@@ -4,7 +4,7 @@ use avian2d::spatial_query::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
 use crate::{
-    game::{PhysicLayer, sound::NoiseEvent},
+    game::{PhysicLayer, creatures::Creature, sound::NoiseEvent},
     theme::palette,
 };
 
@@ -34,13 +34,11 @@ pub(super) fn plugin(app: &mut App) {
 #[derive(Resource)]
 struct SonarPointAssets {
     mesh: Handle<Mesh>,
-    color: Color,
 }
 
 fn load_sonar_point_assets(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(SonarPointAssets {
         mesh: meshes.add(Circle::new(DETECTED_POINT_RADIUS)),
-        color: palette::PHOSPHORE_HIGH,
     });
 }
 
@@ -56,21 +54,39 @@ impl ActiveScan {
     }
 }
 
+/// Kind of entity scan by the sonar
+#[derive(Reflect, Debug, Clone, Copy)]
+pub enum SonarKind {
+    Terrain,
+    Creature(Entity),
+}
+
+impl SonarKind {
+    fn get_point_color(&self) -> Color {
+        match self {
+            SonarKind::Terrain => palette::PHOSPHORE_HIGH,
+            SonarKind::Creature(_) => palette::RED_HIGH,
+        }
+    }
+}
+
 #[derive(Component, Reflect, Clone, Debug)]
 #[reflect(Component)]
 pub struct SonarPoint {
     pub position: Vec2,
     pub distance_to_sonar: f32,
+    pub kind: SonarKind,
 }
 
 impl SonarPoint {
     /// Seconds of echo delay per pixel of distance: round tripa,
     const ECHO_DELAY_PER_PIXEL: f32 = 2.0 / (PIXELS_PER_METER * SOUND_SPEED);
 
-    fn new(position: Vec2, distance_to_sonar: f32) -> Self {
+    fn new(position: Vec2, distance_to_sonar: f32, kind: SonarKind) -> Self {
         Self {
             position,
             distance_to_sonar,
+            kind,
         }
     }
 
@@ -103,6 +119,7 @@ fn handle_new_scan(
     spatial_query: SpatialQuery,
     mut noise_events: MessageWriter<NoiseEvent>,
     scans: Query<(Entity, &ActiveScan, &GlobalTransform), Added<ActiveScan>>,
+    creatures: Query<Entity, With<Creature>>,
 ) {
     for (entity, scan, transform) in scans {
         let filter = SpatialQueryFilter::from_mask([PhysicLayer::Terrain, PhysicLayer::Creature]);
@@ -119,7 +136,13 @@ fn handle_new_scan(
                     spatial_query.cast_ray(origin, dir, scan.range, false, &filter)
                 {
                     let position = origin + dir * hit_data.distance;
-                    Some(SonarPoint::new(position, hit_data.distance))
+                    let kind = if creatures.contains(hit_data.entity) {
+                        SonarKind::Creature(hit_data.entity)
+                    } else {
+                        SonarKind::Terrain
+                    };
+
+                    Some(SonarPoint::new(position, hit_data.distance, kind))
                 } else {
                     None
                 }
@@ -163,10 +186,11 @@ fn animate_sonar_points(
         Entity,
         &mut Transform,
         Option<&MeshMaterial2d<ColorMaterial>>,
+        &SonarPoint,
         &mut SonarPointVisual,
     )>,
 ) {
-    for (entity, mut transform, material, mut visual) in &mut points {
+    for (entity, mut transform, material, point, mut visual) in &mut points {
         if !visual.activation_timer.tick(time.delta()).is_finished() {
             continue;
         }
@@ -174,7 +198,7 @@ fn animate_sonar_points(
         let material = match material {
             Some(material) => material.0.clone(),
             None => {
-                let material = materials.add(ColorMaterial::from(sonar_point_assets.color));
+                let material = materials.add(ColorMaterial::from(point.kind.get_point_color()));
                 commands.entity(entity).insert((
                     Mesh2d(sonar_point_assets.mesh.clone()),
                     MeshMaterial2d(material.clone()),

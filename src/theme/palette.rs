@@ -8,6 +8,9 @@ pub const PHOSPHORE_HIGH: Color = Color::srgb_u8(94, 240, 200);
 /// #2e7a68
 pub const PHOSPHORE_LOW: Color = Color::srgb_u8(46, 122, 104);
 
+/// #e8564c
+pub const RED_HIGH: Color = Color::srgb_u8(232, 86, 76);
+
 pub const HEADER_TEXT: Color = PHOSPHORE_HIGH;
 pub const LABEL_TEXT: Color = PHOSPHORE_HIGH;
 pub const BUTTON_TEXT: Color = PHOSPHORE_HIGH;
