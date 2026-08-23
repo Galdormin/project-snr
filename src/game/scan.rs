@@ -3,7 +3,10 @@
 use avian2d::spatial_query::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
-use crate::{game::PhysicLayer, theme::palette};
+use crate::{
+    game::{PhysicLayer, sound::NoiseEvent},
+    theme::palette,
+};
 
 /// Pixels per in-game meter, used to convert distances into real-world units
 /// for the echo delay computation.
@@ -44,7 +47,7 @@ fn load_sonar_point_assets(mut commands: Commands, mut meshes: ResMut<Assets<Mes
 #[derive(Component, Reflect, Clone, Debug)]
 #[reflect(Component)]
 pub struct ActiveScan {
-    range: f32,
+    pub range: f32,
 }
 
 impl ActiveScan {
@@ -98,11 +101,15 @@ impl SonarPointVisual {
 fn handle_new_scan(
     mut commands: Commands,
     spatial_query: SpatialQuery,
+    mut noise_events: MessageWriter<NoiseEvent>,
     scans: Query<(Entity, &ActiveScan, &GlobalTransform), Added<ActiveScan>>,
 ) {
     for (entity, scan, transform) in scans {
-        let filter = SpatialQueryFilter::from_mask(PhysicLayer::Terrain);
+        let filter = SpatialQueryFilter::from_mask([PhysicLayer::Terrain, PhysicLayer::Creature]);
         let origin = transform.translation().truncate();
+
+        // The ping itself is a noise: audible exactly as far as the scan can see.
+        noise_events.write(NoiseEvent::from_loudness(origin, scan.range));
 
         let points: Vec<SonarPoint> = (0..360)
             .filter(|angle| angle % 2 == 0)

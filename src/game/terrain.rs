@@ -18,6 +18,7 @@ pub(super) fn plugin(app: &mut App) {
 /// Collider shape for a wall tile, read from its `collider` metadata key.
 #[derive(Debug, Clone, Copy, Deserialize)]
 pub enum WallCollider {
+    None,
     Square(f32),
     Triangle(f32),
 }
@@ -26,18 +27,19 @@ impl WallCollider {
     /// Builds the collider, mirroring it to match the tile's LDtk flip flags. Flips
     /// only affect the tile's rendering (UVs), not its `Transform`, so the collider
     /// has to be mirrored by hand to stay aligned with what's drawn.
-    fn as_collider(self, flip: TileFlip) -> Collider {
+    fn as_collider(self, flip: TileFlip) -> Option<Collider> {
         match self {
-            WallCollider::Square(length) => Collider::rectangle(length, length),
+            WallCollider::None => None,
+            WallCollider::Square(length) => Some(Collider::rectangle(length, length)),
             WallCollider::Triangle(length) => {
                 let half = length / 2.0;
                 let sign_x = if flip.x { -1.0 } else { 1.0 };
                 let sign_y = if flip.y { -1.0 } else { 1.0 };
-                Collider::triangle(
+                Some(Collider::triangle(
                     Vec2::new(-half * sign_x, -half * sign_y),
                     Vec2::new(half * sign_x, -half * sign_y),
                     Vec2::new(-half * sign_x, half * sign_y),
-                )
+                ))
             }
         }
     }
@@ -47,22 +49,19 @@ impl WallCollider {
 #[reflect(Component)]
 pub struct Wall;
 
+/// Only the marker: `RigidBody`/`Collider`/`CollisionLayers` are inserted
+/// lazily by `load_wall_collider`, only for tiles that actually need one.
+/// Eagerly spawning them for every int-grid cell (most of which turn out to
+/// be interior tiles with no collider) registers and immediately tears down
+/// thousands of physics bodies, which is what made startup slow.
 #[derive(Bundle, LdtkIntCell)]
 pub(super) struct TerrainBundle {
     wall: Wall,
-    body: RigidBody,
-    collider: Collider,
-    collision_layers: CollisionLayers,
 }
 
 impl Default for TerrainBundle {
     fn default() -> Self {
-        Self {
-            wall: Wall,
-            body: RigidBody::Static,
-            collider: Collider::rectangle(8.0, 8.0),
-            collision_layers: CollisionLayers::new(PhysicLayer::Terrain, [PhysicLayer::Drone]),
-        }
+        Self { wall: Wall }
     }
 }
 
@@ -79,10 +78,19 @@ fn load_wall_collider(
             return Ok(());
         };
 
-        let collider = metadata.parse_key::<WallCollider>("collider")?;
-        commands
-            .entity(entity)
-            .insert(collider.as_collider(flip.copied().unwrap_or_default()));
+        let wall_collider = metadata.parse_key::<WallCollider>("collider")?;
+        if let Some(collider) = wall_collider.as_collider(flip.copied().unwrap_or_default()) {
+            commands.entity(entity).insert((
+                RigidBody::Static,
+                collider,
+                CollisionLayers::new(
+                    PhysicLayer::Terrain,
+                    [PhysicLayer::Drone, PhysicLayer::Creature],
+                ),
+            ));
+        } else {
+            commands.entity(entity).despawn();
+        }
     }
     Ok(())
 }

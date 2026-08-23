@@ -104,13 +104,16 @@ impl Default for PhysicDroneBundle {
         Self {
             rigid_body: RigidBody::Dynamic,
             collider: Collider::triangle(
-                Vec2::new(-SPRITE_SIZE, -SPRITE_SIZE),
-                Vec2::new(0., SPRITE_SIZE),
-                Vec2::new(SPRITE_SIZE, -SPRITE_SIZE),
+                0.6 * Vec2::new(-SPRITE_SIZE, -SPRITE_SIZE),
+                0.6 * Vec2::new(0., SPRITE_SIZE),
+                0.6 * Vec2::new(SPRITE_SIZE, -SPRITE_SIZE),
             ),
             linear_damping: LinearDamping(1.0),
             angular_damping: AngularDamping(4.0),
-            collision_layers: CollisionLayers::new(PhysicLayer::Drone, [PhysicLayer::Terrain]),
+            collision_layers: CollisionLayers::new(
+                PhysicLayer::Drone,
+                [PhysicLayer::Terrain, PhysicLayer::Creature],
+            ),
             linear_acceleration: ConstantLocalLinearAcceleration::default(),
             angular_acceleration: ConstantAngularAcceleration::default(),
         }
@@ -184,11 +187,11 @@ fn apply_input_to_drone(
         return;
     }
 
-    let intensity = new_linear_acc + new_angular_acc.abs() * 15.;
-    if intensity > 0.0 {
-        noise_events.write(NoiseEvent {
-            position: transform.translation().truncate(),
-            intensity,
-        });
+    let loudness = new_linear_acc + new_angular_acc.abs() * 15.;
+    if loudness > 0.0 {
+        noise_events.write(NoiseEvent::from_loudness(
+            transform.translation().truncate(),
+            loudness,
+        ));
     }
 }
