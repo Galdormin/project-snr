@@ -4,13 +4,16 @@ use avian2d::collision::collider::Collider;
 use bevy::prelude::*;
 use bevy_ecs_ldtk::LdtkEntity;
 
-use crate::game::creatures::{
-    Creature, CreatureBundle,
-    perception::{Heard, PerceptionSet},
-    steer_glide::{
-        BurstGlide, ContextMap, ContextMapInterest, DesiredDir, ObstacleAvoidance, SLOT_ANGLE,
-        STEER_SLOTS, SteeringSet,
+use crate::game::{
+    creatures::{
+        Creature, CreatureBundle,
+        perception::{Heard, PerceptionSet},
+        steer_glide::{
+            BurstGlide, ContextMap, ContextMapInterest, DesiredDir, ObstacleAvoidance, SLOT_ANGLE,
+            STEER_SLOTS, SteeringSet,
+        },
     },
+    sonar::feature::{SurfaceFeatures, SurfacePassage, SurfaceReflexivity, SurfaceTexture},
 };
 
 /// Weight of the "keep going straight" bias: prevents U-turns and jitter.
@@ -86,6 +89,7 @@ pub struct SilentBundle {
     steer_target: SteerTarget,
     persistence: Persistence,
     heard: Heard,
+    features: SurfaceFeatures,
 }
 
 impl Default for SilentBundle {
@@ -103,6 +107,11 @@ impl Default for SilentBundle {
             steer_target: SteerTarget::Wander,
             persistence: Persistence::default(),
             heard: Heard::with_sensitivity(HEARING_SENSITIVITY_DB),
+            features: SurfaceFeatures {
+                texture: SurfaceTexture::Soft,
+                reflexivity: SurfaceReflexivity::Weak,
+                passage: SurfacePassage::Solid,
+            },
         }
     }
 }

@@ -15,7 +15,7 @@ use bevy_enhanced_input::{
 
 use crate::{
     AppSystems, PausableSystems,
-    game::{PhysicLayer, scan::ActiveScan, sound::NoiseEvent},
+    game::{PhysicLayer, sonar::scan::ActiveScan, sound::NoiseEvent},
     screens::Screen,
 };
 

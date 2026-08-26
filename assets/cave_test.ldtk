@@ -428,7 +428,7 @@
 						},
 						{
 							"__identifier": "Drone",
-							"__grid": [125,81],
+							"__grid": [33,33],
 							"__pivot": [0,0],
 							"__tags": [],
 							"__tile": { "tilesetUid": 2, "x": 0, "y": 8, "w": 8, "h": 8 },
@@ -437,10 +437,10 @@
 							"width": 16,
 							"height": 16,
 							"defUid": 6,
-							"px": [1000,648],
+							"px": [264,264],
 							"fieldInstances": [],
-							"__worldX": -16,
-							"__worldY": -40
+							"__worldX": -752,
+							"__worldY": -424
 						},
 						{
 							"__identifier": "Silent",

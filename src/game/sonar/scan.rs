@@ -3,9 +3,13 @@
 use avian2d::spatial_query::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
-use crate::{
-    game::{PhysicLayer, creatures::Creature, sound::NoiseEvent},
-    theme::palette,
+use crate::game::{
+    PhysicLayer,
+    sonar::{
+        catalog::SonarCatalog,
+        feature::{SonarFeaturesStatus, SurfaceFeatures},
+    },
+    sound::NoiseEvent,
 };
 
 /// Pixels per in-game meter, used to convert distances into real-world units
@@ -28,7 +32,11 @@ pub(super) fn plugin(app: &mut App) {
             .chain()
             .after(TransformSystems::Propagate),
     );
-    app.add_systems(Update, animate_sonar_points);
+
+    app.add_systems(
+        Update,
+        (spawn_sonar_point_visuals, animate_sonar_points).chain(),
+    );
 }
 
 #[derive(Resource)]
@@ -54,39 +62,23 @@ impl ActiveScan {
     }
 }
 
-/// Kind of entity scan by the sonar
-#[derive(Reflect, Debug, Clone, Copy)]
-pub enum SonarKind {
-    Terrain,
-    Creature(Entity),
-}
-
-impl SonarKind {
-    fn get_point_color(&self) -> Color {
-        match self {
-            SonarKind::Terrain => palette::PHOSPHORE_HIGH,
-            SonarKind::Creature(_) => palette::RED_HIGH,
-        }
-    }
-}
-
 #[derive(Component, Reflect, Clone, Debug)]
 #[reflect(Component)]
 pub struct SonarPoint {
-    pub position: Vec2,
-    pub distance_to_sonar: f32,
-    pub kind: SonarKind,
+    pub(super) entity: Entity,
+    position: Vec2,
+    distance_to_sonar: f32,
 }
 
 impl SonarPoint {
     /// Seconds of echo delay per pixel of distance: round tripa,
     const ECHO_DELAY_PER_PIXEL: f32 = 2.0 / (PIXELS_PER_METER * SOUND_SPEED);
 
-    fn new(position: Vec2, distance_to_sonar: f32, kind: SonarKind) -> Self {
+    fn new(entity: Entity, position: Vec2, distance_to_sonar: f32) -> Self {
         Self {
+            entity,
             position,
             distance_to_sonar,
-            kind,
         }
     }
 
@@ -119,7 +111,6 @@ fn handle_new_scan(
     spatial_query: SpatialQuery,
     mut noise_events: MessageWriter<NoiseEvent>,
     scans: Query<(Entity, &ActiveScan, &GlobalTransform), Added<ActiveScan>>,
-    creatures: Query<Entity, With<Creature>>,
 ) {
     for (entity, scan, transform) in scans {
         let filter = SpatialQueryFilter::from_mask([PhysicLayer::Terrain, PhysicLayer::Creature]);
@@ -136,13 +127,11 @@ fn handle_new_scan(
                     spatial_query.cast_ray(origin, dir, scan.range, false, &filter)
                 {
                     let position = origin + dir * hit_data.distance;
-                    let kind = if creatures.contains(hit_data.entity) {
-                        SonarKind::Creature(hit_data.entity)
-                    } else {
-                        SonarKind::Terrain
-                    };
-
-                    Some(SonarPoint::new(position, hit_data.distance, kind))
+                    Some(SonarPoint::new(
+                        hit_data.entity,
+                        position,
+                        hit_data.distance,
+                    ))
                 } else {
                     None
                 }
@@ -177,36 +166,68 @@ fn despawn_childless_scans(
     }
 }
 
-fn animate_sonar_points(
+/// Spawns a sonar point's mesh once its echo has had time to come back.
+///
+/// The echo arriving is also what logs the surface in the [`SonarCatalog`], so
+/// a contact shows up in the table exactly when it shows up on screen.
+fn spawn_sonar_point_visuals(
     mut commands: Commands,
     time: Res<Time>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    feat_status: Res<SonarFeaturesStatus>,
     sonar_point_assets: Res<SonarPointAssets>,
-    mut points: Query<(
-        Entity,
-        &mut Transform,
-        Option<&MeshMaterial2d<ColorMaterial>>,
-        &SonarPoint,
-        &mut SonarPointVisual,
-    )>,
+    mut catalog: ResMut<SonarCatalog>,
+    surfaces: Query<&SurfaceFeatures>,
+    mut points: Query<
+        (Entity, &SonarPoint, &mut SonarPointVisual),
+        Without<MeshMaterial2d<ColorMaterial>>,
+    >,
 ) {
-    for (entity, mut transform, material, point, mut visual) in &mut points {
+    for (entity, point, mut visual) in &mut points {
         if !visual.activation_timer.tick(time.delta()).is_finished() {
             continue;
         }
 
-        let material = match material {
-            Some(material) => material.0.clone(),
-            None => {
-                let material = materials.add(ColorMaterial::from(point.kind.get_point_color()));
-                commands.entity(entity).insert((
-                    Mesh2d(sonar_point_assets.mesh.clone()),
-                    MeshMaterial2d(material.clone()),
-                ));
-                material
-            }
+        let Ok(signature) = surfaces
+            .get(point.entity)
+            .map(|features| feat_status.signature_of(features))
+        else {
+            error!(
+                "Entity {} was scanned by sonar but has no SurfaceFeatures.",
+                point.entity
+            );
+            continue;
         };
 
+        // Only an unknown signature is a structural change: going through
+        // `observe` for a known one would mark the catalog changed on every
+        // arriving echo, and rebuild the table out from under a rename.
+        let color = catalog
+            .color_of(&signature)
+            .unwrap_or_else(|| catalog.observe(&signature));
+        let material = materials.add(ColorMaterial::from(color));
+
+        commands.entity(entity).insert((
+            Mesh2d(sonar_point_assets.mesh.clone()),
+            MeshMaterial2d(material),
+        ));
+    }
+}
+
+/// Fades out and grows a displayed sonar point until its display duration
+/// runs out, then despawns it.
+fn animate_sonar_points(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut points: Query<(
+        Entity,
+        &mut Transform,
+        &MeshMaterial2d<ColorMaterial>,
+        &mut SonarPointVisual,
+    )>,
+) {
+    for (entity, mut transform, material, mut visual) in &mut points {
         if visual.display_timer.tick(time.delta()).is_finished() {
             commands.entity(entity).despawn();
             continue;
@@ -215,7 +236,7 @@ fn animate_sonar_points(
         let remaining =
             visual.display_timer.remaining_secs() / visual.display_timer.duration().as_secs_f32();
         transform.scale = Vec3::splat(remaining);
-        if let Some(mut material) = materials.get_mut(&material) {
+        if let Some(mut material) = materials.get_mut(&material.0) {
             material.color.set_alpha(remaining);
         }
     }

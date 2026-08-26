@@ -7,9 +7,10 @@ mod camera;
 pub mod creatures;
 mod drone;
 mod ldtk;
-mod scan;
+mod sonar;
 mod sound;
 mod terrain;
+mod ui;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(PhysicsPlugins::default());
@@ -20,9 +21,10 @@ pub(super) fn plugin(app: &mut App) {
         creatures::plugin,
         drone::plugin,
         ldtk::plugin,
-        scan::plugin,
+        sonar::plugin,
         sound::plugin,
         terrain::plugin,
+        ui::plugin,
     ));
 }
 

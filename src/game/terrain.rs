@@ -9,7 +9,11 @@ use bevy_ecs_ldtk::{LdtkIntCell, TileMetadata};
 use bevy_ecs_tilemap::tiles::TileFlip;
 use serde::Deserialize;
 
-use crate::game::{PhysicLayer, ldtk::TileMetadataParser};
+use crate::game::{
+    PhysicLayer,
+    ldtk::TileMetadataParser,
+    sonar::feature::{SurfaceFeatures, SurfacePassage, SurfaceReflexivity, SurfaceTexture},
+};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(Update, load_wall_collider);
@@ -57,11 +61,19 @@ pub struct Wall;
 #[derive(Bundle, LdtkIntCell)]
 pub(super) struct TerrainBundle {
     wall: Wall,
+    features: SurfaceFeatures,
 }
 
 impl Default for TerrainBundle {
     fn default() -> Self {
-        Self { wall: Wall }
+        Self {
+            wall: Wall,
+            features: SurfaceFeatures {
+                texture: SurfaceTexture::Hard,
+                reflexivity: SurfaceReflexivity::Strong,
+                passage: SurfacePassage::Solid,
+            },
+        }
     }
 }
 
