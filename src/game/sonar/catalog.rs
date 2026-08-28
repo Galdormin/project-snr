@@ -46,6 +46,11 @@ impl SonarCatalog {
         self.entries.get(signature).map(|entry| entry.color)
     }
 
+    /// Name already on file for this signature, if any.
+    pub fn name_of(&self, signature: &SonarSignature) -> Option<String> {
+        self.entries.get(signature).map(|entry| entry.name.clone())
+    }
+
     /// Files a return whose signature isn't on record yet, and hands back the
     /// color to draw it with.
     pub fn observe(&mut self, signature: &SonarSignature) -> Color {
@@ -179,29 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn a_finer_row_does_not_inherit_from_an_unrelated_one() {
-        let mut catalog = SonarCatalog::default();
-        catalog.observe(&hard());
-        catalog.set_name(&hard(), "ROCK".to_string());
-        catalog.set_color(&hard(), palette::AZURE_HIGH);
-
-        // Reflexivity unlocks, then a *creature* is scanned. It shares no
-        // reading with the rock, so it must not inherit its name or color, and
-        // must not push the rock's row off the table.
-        let soft_strong = SonarSignature {
-            texture: Some(SurfaceTexture::Soft),
-            reflexivity: Some(SurfaceReflexivity::Strong),
-            ..default()
-        };
-        assert_eq!(catalog.observe(&soft_strong), SonarCatalog::DEFAULT_COLOR);
-
-        let rows = catalog.rows();
-        assert_eq!(rows.len(), 2, "the rock's row must survive");
-        assert!(rows.iter().any(|(_, entry)| entry.name == "ROCK"));
-    }
-
-    #[test]
-    fn first_return_creates_a_row() {
+    fn test_create_first_row() {
         let mut catalog = SonarCatalog::default();
 
         assert_eq!(catalog.observe(&hard()), SonarCatalog::DEFAULT_COLOR);
@@ -213,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn known_return_does_not_create_a_second_row() {
+    fn test_known_signature() {
         let mut catalog = SonarCatalog::default();
         catalog.observe(&hard());
         catalog.set_color(&hard(), palette::AZURE_HIGH);
@@ -223,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn unlocking_a_feature_splits_the_row_and_hands_down_name_and_color() {
+    fn test_signature_heritage() {
         let mut catalog = SonarCatalog::default();
         catalog.observe(&hard());
         catalog.set_name(&hard(), "ROCK".to_string());
@@ -241,27 +224,24 @@ mod tests {
     }
 
     #[test]
-    fn both_siblings_inherit_from_the_same_superseded_row() {
+    fn test_signature_heritage_with_sibling() {
         let mut catalog = SonarCatalog::default();
         catalog.observe(&hard());
         catalog.set_name(&hard(), "ROCK".to_string());
         catalog.set_color(&hard(), palette::AZURE_HIGH);
 
         catalog.observe(&hard_reflective());
-        // The second sibling is found later and must still inherit.
+        catalog.set_color(&hard_reflective(), palette::AMBER_HIGH);
+
         assert_eq!(catalog.observe(&hard_absorbent()), palette::AZURE_HIGH);
 
         let rows = catalog.rows();
         assert_eq!(rows.len(), 2);
         assert!(rows.iter().all(|(_, entry)| entry.name == "ROCK"));
-        assert!(
-            rows.iter()
-                .all(|(_, entry)| entry.color == palette::AZURE_HIGH)
-        );
     }
 
     #[test]
-    fn an_unrelated_signature_gets_a_fresh_row() {
+    fn test_observe_new_signature() {
         let mut catalog = SonarCatalog::default();
         catalog.observe(&hard());
         catalog.set_color(&hard(), palette::AZURE_HIGH);
@@ -272,7 +252,26 @@ mod tests {
     }
 
     #[test]
-    fn opening_the_panel_clears_the_new_markers() {
+    fn test_no_heritage() {
+        let mut catalog = SonarCatalog::default();
+        catalog.observe(&hard());
+        catalog.set_name(&hard(), "ROCK".to_string());
+        catalog.set_color(&hard(), palette::AZURE_HIGH);
+
+        let soft_strong = SonarSignature {
+            texture: Some(SurfaceTexture::Soft),
+            reflexivity: Some(SurfaceReflexivity::Strong),
+            ..default()
+        };
+        assert_eq!(catalog.observe(&soft_strong), SonarCatalog::DEFAULT_COLOR);
+
+        let rows = catalog.rows();
+        assert_eq!(rows.len(), 2);
+        assert!(rows.iter().any(|(_, entry)| entry.name == "ROCK"));
+    }
+
+    #[test]
+    fn test_clear_new_flags() {
         let mut catalog = SonarCatalog::default();
         catalog.observe(&hard());
         assert_eq!(catalog.new_count(), 1);

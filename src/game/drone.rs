@@ -15,7 +15,14 @@ use bevy_enhanced_input::{
 
 use crate::{
     AppSystems, PausableSystems,
-    game::{PhysicLayer, sonar::scan::ActiveScan, sound::NoiseEvent},
+    game::{
+        PhysicLayer,
+        sonar::{
+            range::ScanRange,
+            scan::{ActiveScan, Sonar},
+        },
+        sound::NoiseEvent,
+    },
     screens::Screen,
 };
 
@@ -52,6 +59,7 @@ pub struct Drone;
 #[derive(Bundle, Default, LdtkEntity)]
 pub(super) struct DroneBundle {
     drone: Drone,
+    sonar: Sonar,
     physic: PhysicDroneBundle,
     engine_power: EnginePower,
     engine_noise_timer: EngineNoiseTimer,
@@ -150,11 +158,15 @@ fn bind_drone(add: On<Add, Drone>, mut commands: Commands, asset_server: Res<Ass
 fn launch_scan(
     _: On<Start<Scan>>,
     mut commands: Commands,
-    drone: Single<&GlobalTransform, With<Drone>>,
+    range: Res<ScanRange>,
+    drone: Single<(&GlobalTransform, &mut Sonar), With<Drone>>,
 ) {
+    let (transform, mut sonar) = drone.into_inner();
+
+    sonar.listen(range.in_pixels());
     commands.spawn((
-        ActiveScan::new(300.0),
-        Transform::from_translation(drone.translation()),
+        ActiveScan::new(range.in_pixels()),
+        Transform::from_translation(transform.translation()),
         Visibility::default(),
     ));
 }

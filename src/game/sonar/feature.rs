@@ -75,7 +75,7 @@ pub struct SonarFeaturesStatus {
 impl Default for SonarFeaturesStatus {
     fn default() -> Self {
         Self {
-            texture: false,
+            texture: true,
             reflexivity: false,
             passage: false,
         }

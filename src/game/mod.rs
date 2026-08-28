@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 mod camera;
 pub mod creatures;
-mod drone;
+pub mod drone;
 mod ldtk;
 mod sonar;
 mod sound;

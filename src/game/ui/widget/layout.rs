@@ -50,10 +50,32 @@ pub fn hud_corner(corner: Corner, content: impl SceneList) -> impl Scene {
     }
 }
 
-/// A thin vertical divider, for separating groups inside a row.
-pub fn rule() -> impl Scene {
+/// A table: one grid of `columns` `auto`-sized tracks, fed a flat list of cells.
+pub fn grid(columns: u16, cells: impl SceneList) -> impl Scene {
+    bsn! {
+        Node {
+            display: Display::Grid,
+            grid_template_columns: {RepeatedGridTrack::auto::<Vec<_>>(columns)},
+            column_gap: px(6.0),
+            row_gap: px(2.0),
+            align_items: AlignItems::Center,
+        }
+        Children [ {cells} ]
+    }
+}
+
+/// A thin vertical divider
+pub fn vrule() -> impl Scene {
     bsn! {
         Node { width: px(1.0), height: {px(SWATCH_SIZE)} }
+        BackgroundColor(HUD_BORDER)
+    }
+}
+
+/// A thin horizontal divider.
+pub fn hrule() -> impl Scene {
+    bsn! {
+        Node { height: px(1.0) }
         BackgroundColor(HUD_BORDER)
     }
 }

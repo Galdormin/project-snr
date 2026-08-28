@@ -6,15 +6,14 @@ use bevy::prelude::*;
 use crate::game::{
     PhysicLayer,
     sonar::{
+        PIXELS_PER_METER,
         catalog::SonarCatalog,
+        contacts::SonarContactRecord,
         feature::{SonarFeaturesStatus, SurfaceFeatures},
     },
     sound::NoiseEvent,
 };
 
-/// Pixels per in-game meter, used to convert distances into real-world units
-/// for the echo delay computation.
-const PIXELS_PER_METER: f32 = 2.0;
 /// Speed of sound in the game world, in meters per second.
 const SOUND_SPEED: f32 = 500.0;
 /// How long a sonar point stays visible once activated.
@@ -25,6 +24,9 @@ const DETECTED_POINT_RADIUS: f32 = 2.5;
 const DETECTED_POINT_JITTER: f32 = 3.0;
 
 pub(super) fn plugin(app: &mut App) {
+    app.add_message::<ScanStarted>();
+    app.add_message::<ScanCompleted>();
+
     app.add_systems(Startup, load_sonar_point_assets);
     app.add_systems(
         PostUpdate,
@@ -35,9 +37,47 @@ pub(super) fn plugin(app: &mut App) {
 
     app.add_systems(
         Update,
-        (spawn_sonar_point_visuals, animate_sonar_points).chain(),
+        (
+            finish_listening,
+            spawn_sonar_point_visuals,
+            animate_sonar_points,
+        )
+            .chain(),
     );
 }
+
+/// A sonar set, on whatever carries it.
+#[derive(Component, Reflect, Debug)]
+#[reflect(Component)]
+pub struct Sonar {
+    /// Runs down the echo travel time of the ping in flight
+    listening: Timer,
+}
+
+impl Default for Sonar {
+    fn default() -> Self {
+        // Nothing is in flight until the first ping.
+        let mut listening = Timer::from_seconds(0.0, TimerMode::Once);
+        listening.finish();
+        Self { listening }
+    }
+}
+
+impl Sonar {
+    /// Starts listening for the echoes of a ping of the given range.
+    pub fn listen(&mut self, range: f32) {
+        self.listening =
+            Timer::from_seconds(range * SonarPoint::ECHO_DELAY_PER_PIXEL, TimerMode::Once);
+    }
+}
+
+/// Fired when a scan started.
+#[derive(Message, Clone, Copy, Debug)]
+pub struct ScanStarted;
+
+/// Fired once every echo of a scan has had time to come back.
+#[derive(Message, Clone, Copy, Debug)]
+pub struct ScanCompleted;
 
 #[derive(Resource)]
 struct SonarPointAssets {
@@ -72,7 +112,7 @@ pub struct SonarPoint {
 
 impl SonarPoint {
     /// Seconds of echo delay per pixel of distance: round tripa,
-    const ECHO_DELAY_PER_PIXEL: f32 = 2.0 / (PIXELS_PER_METER * SOUND_SPEED);
+    pub(super) const ECHO_DELAY_PER_PIXEL: f32 = 2.0 / (PIXELS_PER_METER * SOUND_SPEED);
 
     fn new(entity: Entity, position: Vec2, distance_to_sonar: f32) -> Self {
         Self {
@@ -85,6 +125,11 @@ impl SonarPoint {
     /// How long the sonar takes to hear this point's echo.
     fn echo_delay(&self) -> f32 {
         self.distance_to_sonar * Self::ECHO_DELAY_PER_PIXEL
+    }
+
+    /// How far away the point is, in the units the HUD reads out.
+    fn distance_in_meters(&self) -> f32 {
+        self.distance_to_sonar / PIXELS_PER_METER
     }
 }
 
@@ -110,9 +155,15 @@ fn handle_new_scan(
     mut commands: Commands,
     spatial_query: SpatialQuery,
     mut noise_events: MessageWriter<NoiseEvent>,
+    mut started: MessageWriter<ScanStarted>,
+    mut record: ResMut<SonarContactRecord>,
     scans: Query<(Entity, &ActiveScan, &GlobalTransform), Added<ActiveScan>>,
 ) {
     for (entity, scan, transform) in scans {
+        // The reading is per ping: whatever the last one heard is stale now.
+        record.clear();
+        started.write(ScanStarted);
+
         let filter = SpatialQueryFilter::from_mask([PhysicLayer::Terrain, PhysicLayer::Creature]);
         let origin = transform.translation().truncate();
 
@@ -166,10 +217,18 @@ fn despawn_childless_scans(
     }
 }
 
+/// Announces a ping whose echoes have all come back
+fn finish_listening(
+    time: Res<Time>,
+    mut sonar: Single<&mut Sonar>,
+    mut completed: MessageWriter<ScanCompleted>,
+) {
+    if sonar.listening.tick(time.delta()).just_finished() {
+        completed.write(ScanCompleted);
+    }
+}
+
 /// Spawns a sonar point's mesh once its echo has had time to come back.
-///
-/// The echo arriving is also what logs the surface in the [`SonarCatalog`], so
-/// a contact shows up in the table exactly when it shows up on screen.
 fn spawn_sonar_point_visuals(
     mut commands: Commands,
     time: Res<Time>,
@@ -177,6 +236,7 @@ fn spawn_sonar_point_visuals(
     feat_status: Res<SonarFeaturesStatus>,
     sonar_point_assets: Res<SonarPointAssets>,
     mut catalog: ResMut<SonarCatalog>,
+    mut contacts: ResMut<SonarContactRecord>,
     surfaces: Query<&SurfaceFeatures>,
     mut points: Query<
         (Entity, &SonarPoint, &mut SonarPointVisual),
@@ -205,6 +265,10 @@ fn spawn_sonar_point_visuals(
         let color = catalog
             .color_of(&signature)
             .unwrap_or_else(|| catalog.observe(&signature));
+
+        // Record the contact
+        contacts.record(signature, point.distance_in_meters());
+
         let material = materials.add(ColorMaterial::from(color));
 
         commands.entity(entity).insert((
@@ -214,8 +278,7 @@ fn spawn_sonar_point_visuals(
     }
 }
 
-/// Fades out and grows a displayed sonar point until its display duration
-/// runs out, then despawns it.
+/// Fades out and grows a displayed sonar point until its display duration runs out, then despawns it.
 fn animate_sonar_points(
     mut commands: Commands,
     time: Res<Time>,
