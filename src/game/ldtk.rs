@@ -12,7 +12,9 @@ use bevy_ecs_ldtk::{
 };
 
 use crate::{
-    game::{creatures::SilentBundle, drone::DroneBundle, terrain::TerrainBundle},
+    game::{
+        beacon::BeaconBundle, creatures::SilentBundle, drone::DroneBundle, terrain::TerrainBundle,
+    },
     screens::Screen,
 };
 
@@ -31,6 +33,7 @@ pub(super) fn plugin(app: &mut App) {
     app.register_ldtk_int_cell::<TerrainBundle>(1);
     app.register_ldtk_entity::<DroneBundle>("Drone");
     app.register_ldtk_entity::<SilentBundle>("Silent");
+    app.register_ldtk_entity::<BeaconBundle>("Beacon");
 
     app.add_systems(OnEnter(Screen::Gameplay), spawn_world);
 }

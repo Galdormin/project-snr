@@ -21,7 +21,7 @@ use crate::{
             range::ScanRange,
             scan::{ActiveScan, Sonar},
         },
-        sound::NoiseEvent,
+        sound::{NoiseEvent, NoiseType},
     },
     screens::Screen,
 };
@@ -203,6 +203,7 @@ fn apply_input_to_drone(
     if loudness > 0.0 {
         noise_events.write(NoiseEvent::from_loudness(
             transform.translation().truncate(),
+            NoiseType::Drone,
             loudness,
         ));
     }

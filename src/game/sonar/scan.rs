@@ -11,7 +11,7 @@ use crate::game::{
         contacts::SonarContactRecord,
         feature::{SonarFeaturesStatus, SurfaceFeatures},
     },
-    sound::NoiseEvent,
+    sound::{NoiseEvent, NoiseType},
 };
 
 /// Speed of sound in the game world, in meters per second.
@@ -22,6 +22,8 @@ const DETECTED_POINT_RADIUS: f32 = 2.5;
 /// Random jitter applied to a point's rendered position, so a flat wall doesn't
 /// render as a perfectly straight line of dots.
 const DETECTED_POINT_JITTER: f32 = 3.0;
+/// Seconds of echo delay per pixel of distance: round tripa,
+pub const ECHO_DELAY_PER_PIXEL: f32 = 2.0 / (PIXELS_PER_METER * SOUND_SPEED);
 
 pub(super) fn plugin(app: &mut App) {
     app.add_message::<ScanStarted>();
@@ -66,8 +68,7 @@ impl Default for Sonar {
 impl Sonar {
     /// Starts listening for the echoes of a ping of the given range.
     pub fn listen(&mut self, range: f32) {
-        self.listening =
-            Timer::from_seconds(range * SonarPoint::ECHO_DELAY_PER_PIXEL, TimerMode::Once);
+        self.listening = Timer::from_seconds(range * ECHO_DELAY_PER_PIXEL, TimerMode::Once);
     }
 }
 
@@ -111,9 +112,6 @@ pub struct SonarPoint {
 }
 
 impl SonarPoint {
-    /// Seconds of echo delay per pixel of distance: round tripa,
-    pub(super) const ECHO_DELAY_PER_PIXEL: f32 = 2.0 / (PIXELS_PER_METER * SOUND_SPEED);
-
     fn new(entity: Entity, position: Vec2, distance_to_sonar: f32) -> Self {
         Self {
             entity,
@@ -124,7 +122,7 @@ impl SonarPoint {
 
     /// How long the sonar takes to hear this point's echo.
     fn echo_delay(&self) -> f32 {
-        self.distance_to_sonar * Self::ECHO_DELAY_PER_PIXEL
+        self.distance_to_sonar * ECHO_DELAY_PER_PIXEL
     }
 
     /// How far away the point is, in the units the HUD reads out.
@@ -164,11 +162,19 @@ fn handle_new_scan(
         record.clear();
         started.write(ScanStarted);
 
-        let filter = SpatialQueryFilter::from_mask([PhysicLayer::Terrain, PhysicLayer::Creature]);
+        let filter = SpatialQueryFilter::from_mask([
+            PhysicLayer::Terrain,
+            PhysicLayer::Creature,
+            PhysicLayer::Beacon,
+        ]);
         let origin = transform.translation().truncate();
 
         // The ping itself is a noise: audible exactly as far as the scan can see.
-        noise_events.write(NoiseEvent::from_loudness(origin, scan.range));
+        noise_events.write(NoiseEvent::from_loudness(
+            origin,
+            NoiseType::Sonar,
+            scan.range,
+        ));
 
         let points: Vec<SonarPoint> = (0..360)
             .filter(|angle| angle % 2 == 0)

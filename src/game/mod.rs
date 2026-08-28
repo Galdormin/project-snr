@@ -3,6 +3,7 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
+mod beacon;
 mod camera;
 pub mod creatures;
 pub mod drone;
@@ -17,6 +18,7 @@ pub(super) fn plugin(app: &mut App) {
     app.insert_resource(Gravity(Vec2::ZERO));
 
     app.add_plugins((
+        beacon::plugin,
         camera::plugin,
         creatures::plugin,
         drone::plugin,
@@ -34,4 +36,5 @@ pub enum PhysicLayer {
     Terrain,
     Drone,
     Creature,
+    Beacon,
 }

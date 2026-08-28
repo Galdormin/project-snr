@@ -76,8 +76,8 @@ impl Default for SonarFeaturesStatus {
     fn default() -> Self {
         Self {
             texture: true,
-            reflexivity: false,
-            passage: false,
+            reflexivity: true,
+            passage: true,
         }
     }
 }
