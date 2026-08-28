@@ -7,10 +7,10 @@ use bevy_ecs_ldtk::LdtkEntity;
 use crate::game::{
     creatures::{
         Creature, CreatureBundle,
-        perception::{Heard, PerceptionSet},
+        perception::{Heard, PerceptionSystems},
         steer_glide::{
             BurstGlide, ContextMap, ContextMapInterest, DesiredDir, ObstacleAvoidance, SLOT_ANGLE,
-            STEER_SLOTS, SteeringSet,
+            STEER_SLOTS, SteeringSystems,
         },
     },
     sonar::feature::{SurfaceFeatures, SurfacePassage, SurfaceReflexivity, SurfaceTexture},
@@ -26,7 +26,7 @@ const BURST_IMPULSE: f32 = 50.0;
 const BURST_INTERVAL: (f32, f32) = (1.5, 3.0);
 /// Drag applied between bursts, responsible for the "glide" half of the cycle.
 const GLIDE_DAMPING: f32 = 1.0;
-/// dB threshold above which this creature perceives a [`NoiseEvent`].
+/// dB threshold above which this creature perceives a `NoiseEvent`.
 const HEARING_SENSITIVITY_DB: f32 = 0.0;
 
 pub(super) fn plugin(app: &mut App) {
@@ -34,10 +34,10 @@ pub(super) fn plugin(app: &mut App) {
         Update,
         (
             update_target_from_heard
-                .after(PerceptionSet::Hear)
-                .before(SteeringSet::Interest),
-            give_up_when_stuck.before(SteeringSet::Interest),
-            build_interest.in_set(SteeringSet::Interest),
+                .after(PerceptionSystems::Hear)
+                .before(SteeringSystems::Interest),
+            give_up_when_stuck.before(SteeringSystems::Interest),
+            build_interest.in_set(SteeringSystems::Interest),
         ),
     );
 }

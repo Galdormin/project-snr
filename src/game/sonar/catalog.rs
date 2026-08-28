@@ -1,6 +1,6 @@
 //! The player's log of everything the sonar has returned so far.
 //!
-//! One row per distinct [`Signature`]. Rows appear by being scanned, never
+//! One row per distinct [`SonarSignature`]. Rows appear by being scanned, never
 //! up-front, so the catalog doubles as a record of what has been found.
 
 use bevy::{platform::collections::HashMap, prelude::*};

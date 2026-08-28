@@ -3,26 +3,26 @@
 use bevy::prelude::*;
 
 use crate::game::{
-    creatures::{Creature, steer_glide::SteeringSet},
+    creatures::{Creature, steer_glide::SteeringSystems},
     sound::NoiseEvent,
 };
 
 pub(super) fn plugin(app: &mut App) {
     app.configure_sets(
         Update,
-        PerceptionSet::Hear
-            .before(SteeringSet::Danger)
-            .before(SteeringSet::Interest),
+        PerceptionSystems::Hear
+            .before(SteeringSystems::Danger)
+            .before(SteeringSystems::Interest),
     );
 
-    app.add_systems(Update, update_perception.in_set(PerceptionSet::Hear));
+    app.add_systems(Update, update_perception.in_set(PerceptionSystems::Hear));
 }
 
 /// How long (s) a heard sound stays worth chasing before it's forgotten.
 const HEARD_MEMORY: f32 = 6.0;
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PerceptionSet {
+pub enum PerceptionSystems {
     /// Set for processing hearing
     Hear,
 }

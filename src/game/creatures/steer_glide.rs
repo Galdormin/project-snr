@@ -25,7 +25,7 @@ const MASK_THRESHOLD: f32 = 0.35;
 pub(super) fn plugin(app: &mut App) {
     app.configure_sets(
         Update,
-        (SteeringSet::Danger, SteeringSet::Interest).before(SteeringSet::Decide),
+        (SteeringSystems::Danger, SteeringSystems::Interest).before(SteeringSystems::Decide),
     );
 
     app.add_systems(
@@ -33,8 +33,8 @@ pub(super) fn plugin(app: &mut App) {
         (
             synchronise_burst_glide.in_set(AppSystems::Synchronize),
             (
-                build_danger_collision.in_set(SteeringSet::Danger),
-                pick_direction.in_set(SteeringSet::Decide),
+                build_danger_collision.in_set(SteeringSystems::Danger),
+                pick_direction.in_set(SteeringSystems::Decide),
                 apply_burst,
             )
                 .in_set(AppSystems::Update)
@@ -44,7 +44,7 @@ pub(super) fn plugin(app: &mut App) {
 }
 
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SteeringSet {
+pub enum SteeringSystems {
     /// Fill the [`ContextMapDanger`]
     Danger,
     /// Fill the [`ContextMapInterest`]

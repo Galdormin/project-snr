@@ -23,7 +23,7 @@ use bevy::{prelude::*, text::FontSize};
 
 /// Body text size across the HUD.
 pub const FONT_SIZE: FontSize = FontSize::Px(13.0);
-/// Side of a square swatch, and the height of a [`rule`].
+/// Side of a square swatch, and the height of a `rule`.
 pub const SWATCH_SIZE: f32 = 18.0;
 
 pub(super) fn plugin(app: &mut App) {
