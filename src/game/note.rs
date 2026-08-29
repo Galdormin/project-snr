@@ -54,6 +54,22 @@ pub struct NoteCatalog {
     notes: Vec<NoteItem>,
 }
 
+impl NoteCatalog {
+    /// Every note on file, locked ones included
+    pub fn notes(&self) -> &[NoteItem] {
+        &self.notes
+    }
+
+    /// Drops the unread mark
+    pub fn mark_read(&mut self, index: usize) {
+        if let Some(item) = self.notes.get_mut(index)
+            && let NoteStatus::Unlocked { unread } = &mut item.status
+        {
+            *unread = false;
+        }
+    }
+}
+
 /// Everything that can go wrong reading a `.note`.
 #[derive(Error, Debug)]
 pub enum NoteLoaderError {

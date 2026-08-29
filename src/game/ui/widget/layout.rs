@@ -50,6 +50,66 @@ pub fn hud_corner(corner: Corner, content: impl SceneList) -> impl Scene {
     }
 }
 
+/// Which screen edge a [`hud_rail`] runs down.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Side {
+    Left,
+    #[default]
+    Right,
+}
+
+/// A bordered strip of controls running down one edge of the screen, centered
+/// on its height. For the buttons that open the panels.
+pub fn hud_rail(side: Side, content: impl SceneList) -> impl Scene {
+    let align_items = match side {
+        Side::Left => AlignItems::Start,
+        Side::Right => AlignItems::End,
+    };
+    bsn! {
+        Node {
+            position_type: PositionType::Absolute,
+            width: percent(100.0),
+            height: percent(100.0),
+            flex_direction: FlexDirection::Column,
+            align_items: {align_items},
+            justify_content: JustifyContent::Center,
+            padding: {UiRect::all(px(16))},
+        }
+        // The root spans the screen: let gameplay clicks through it.
+        Pickable::IGNORE
+        Children [
+            (
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    row_gap: px(6.0),
+                    padding: {UiRect::all(px(6))},
+                    border: {UiRect::all(px(1))},
+                    border_radius: {BorderRadius::all(px(2))},
+                }
+                BackgroundColor(HUD_BACKGROUND)
+                BorderColor::all(HUD_BORDER)
+                Children [ {content} ]
+            ),
+        ]
+    }
+}
+
+/// A screen-filling, click-through root that centers its contents. For the
+/// windows that open over the gameplay rather than beside it.
+pub fn hud_center(content: impl SceneList) -> impl Scene {
+    bsn! {
+        Node {
+            position_type: PositionType::Absolute,
+            width: percent(100.0),
+            height: percent(100.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+        }
+        Pickable::IGNORE
+        Children [ {content} ]
+    }
+}
+
 /// A table: one grid of `columns` `auto`-sized tracks, fed a flat list of cells.
 pub fn grid(columns: u16, cells: impl SceneList) -> impl Scene {
     bsn! {
