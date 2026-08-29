@@ -183,7 +183,7 @@ fn sync_connection_panel(
         text.0 = match (readout, connected) {
             (Readout::Status, _) => connection.status().to_string(),
             (Readout::BeaconId, Some((beacon, _))) => beacon.id(),
-            (Readout::Downloaded, Some(_)) => format!("{:.0} %", progress.floor() * 100.0),
+            (Readout::Downloaded, Some(_)) => format!("{:.0} %", (progress * 100.0).floor()),
             _ => EMPTY_READOUT.to_string(),
         };
     }

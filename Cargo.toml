@@ -8,6 +8,7 @@ edition = "2024"
 rand = "0.10"
 serde = { version="1", features = ["derive"] }
 thiserror = "2"
+toml = "1"
 
 bevy = { version = "0.19", default-features = false, features = ["2d", "ui", "audio", "wayland", "tonemapping_luts", "zstd_rust"] }
 bevy_ecs_ldtk = { version = "0.15", default-features = false, features = ["internal_levels", "derive"]}

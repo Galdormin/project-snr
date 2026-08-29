@@ -8,6 +8,7 @@ mod camera;
 pub mod creatures;
 pub mod drone;
 mod ldtk;
+mod note;
 mod sonar;
 mod sound;
 mod terrain;
@@ -23,6 +24,7 @@ pub(super) fn plugin(app: &mut App) {
         creatures::plugin,
         drone::plugin,
         ldtk::plugin,
+        note::plugin,
         sonar::plugin,
         sound::plugin,
         terrain::plugin,

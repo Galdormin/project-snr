@@ -49,7 +49,7 @@ pub(super) fn plugin(app: &mut App) {
     );
 }
 
-type BeaconId = String;
+pub type BeaconId = String;
 
 /// Marker component for all beacons
 #[derive(Component, Default, Reflect, Clone, Debug)]
@@ -311,9 +311,15 @@ impl BeaconConnection {
 pub struct ConnectionToggleRequested;
 
 /// Raised the frame a beacon's payload finishes coming down.
-#[derive(Message, Debug, Clone, Copy)]
+#[derive(Message, Debug, Clone)]
 pub struct BeaconDownloadCompleted {
-    pub beacon: Entity,
+    pub beacon_id: BeaconId,
+}
+
+impl BeaconDownloadCompleted {
+    fn new(beacon_id: BeaconId) -> Self {
+        Self { beacon_id }
+    }
 }
 
 /// The nearest beacon the drone could talk to from where it is.
@@ -402,16 +408,16 @@ fn download_beacon_data(
     mut connection: ResMut<BeaconConnection>,
     mut completed: MessageWriter<BeaconDownloadCompleted>,
     mut noise: MessageWriter<NoiseEvent>,
-    mut beacons: Query<(&mut BeaconData, &Position)>,
+    mut beacons: Query<(&Beacon, &mut BeaconData, &Position)>,
 ) {
     if !connection.is_downloading() {
         return;
     }
 
-    let Some(beacon) = connection.connected() else {
+    let Some(beacon_entity) = connection.connected() else {
         return;
     };
-    let Ok((mut data, position)) = beacons.get_mut(beacon) else {
+    let Ok((beacon, mut data, position)) = beacons.get_mut(beacon_entity) else {
         return;
     };
 
@@ -426,9 +432,9 @@ fn download_beacon_data(
     if data.downloaded.tick(time.delta()).just_finished() {
         // The connection stays open, but there is nothing left to download
         connection.state = ConnectionState::Connected {
-            beacon,
+            beacon: beacon_entity,
             downloading: false,
         };
-        completed.write(BeaconDownloadCompleted { beacon });
+        completed.write(BeaconDownloadCompleted::new(beacon.0.clone()));
     }
 }
