@@ -19,7 +19,7 @@ use crate::{
         PhysicLayer,
         sonar::{
             range::ScanRange,
-            scan::{ActiveScan, Sonar},
+            scan::{ActiveScan, Sonar, SonarCooldown},
         },
         sound::{NoiseEvent, NoiseType},
     },
@@ -60,6 +60,7 @@ pub struct Drone;
 pub(super) struct DroneBundle {
     drone: Drone,
     sonar: Sonar,
+    sonar_cooldown: SonarCooldown,
     physic: PhysicDroneBundle,
     engine_power: EnginePower,
     engine_noise_timer: EngineNoiseTimer,
@@ -159,11 +160,16 @@ fn launch_scan(
     _: On<Start<Scan>>,
     mut commands: Commands,
     range: Res<ScanRange>,
-    drone: Single<(&GlobalTransform, &mut Sonar), With<Drone>>,
+    drone: Single<(&GlobalTransform, &mut Sonar, &mut SonarCooldown), With<Drone>>,
 ) {
-    let (transform, mut sonar) = drone.into_inner();
+    let (transform, mut sonar, mut cooldown) = drone.into_inner();
+
+    if !cooldown.timer.is_finished() {
+        return;
+    }
 
     sonar.listen(range.in_pixels());
+    cooldown.timer.reset();
     commands.spawn((
         ActiveScan::new(range.in_pixels()),
         Transform::from_translation(transform.translation()),

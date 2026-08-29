@@ -3,15 +3,18 @@
 use avian2d::spatial_query::{SpatialQuery, SpatialQueryFilter};
 use bevy::prelude::*;
 
-use crate::game::{
-    PhysicLayer,
-    sonar::{
-        PIXELS_PER_METER,
-        catalog::SonarCatalog,
-        contacts::SonarContactRecord,
-        feature::{SonarFeaturesStatus, SurfaceFeatures},
+use crate::{
+    AppSystems, PausableSystems,
+    game::{
+        PhysicLayer,
+        sonar::{
+            PIXELS_PER_METER,
+            catalog::SonarCatalog,
+            contacts::SonarContactRecord,
+            feature::{SonarFeaturesStatus, SurfaceFeatures},
+        },
+        sound::{NoiseEvent, NoiseType},
     },
-    sound::{NoiseEvent, NoiseType},
 };
 
 /// Speed of sound in the game world, in meters per second.
@@ -30,6 +33,12 @@ pub(super) fn plugin(app: &mut App) {
     app.add_message::<ScanCompleted>();
 
     app.add_systems(Startup, load_sonar_point_assets);
+    app.add_systems(
+        Update,
+        tick_sonar_cooldown_timer
+            .in_set(AppSystems::TickTimers)
+            .in_set(PausableSystems),
+    );
     app.add_systems(
         PostUpdate,
         (handle_new_scan, despawn_childless_scans)
@@ -69,6 +78,28 @@ impl Sonar {
     /// Starts listening for the echoes of a ping of the given range.
     pub fn listen(&mut self, range: f32) {
         self.listening = Timer::from_seconds(range * ECHO_DELAY_PER_PIXEL, TimerMode::Once);
+    }
+}
+
+/// Sonar cooldown
+#[derive(Component, Reflect, Clone, Debug)]
+#[reflect(Component)]
+pub struct SonarCooldown {
+    pub timer: Timer,
+}
+
+impl Default for SonarCooldown {
+    fn default() -> Self {
+        Self::new(3.0)
+    }
+}
+
+impl SonarCooldown {
+    fn new(cooldown: f32) -> Self {
+        let mut timer = Timer::from_seconds(cooldown, TimerMode::Once);
+        timer.finish();
+
+        Self { timer }
     }
 }
 
@@ -209,6 +240,13 @@ fn handle_new_scan(
                 point,
             ));
         }
+    }
+}
+
+fn tick_sonar_cooldown_timer(time: Res<Time>, sonars: Query<&mut SonarCooldown>) {
+    let delta = time.delta();
+    for mut cooldown in sonars {
+        cooldown.timer.tick(delta);
     }
 }
 

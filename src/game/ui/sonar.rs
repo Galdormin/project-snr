@@ -12,7 +12,7 @@ use crate::{
             contacts::{SonarContact, SonarContactRecord},
             feature::{SonarFeaturesStatus, SonarSignature},
             range::{RangePreview, ScanRange},
-            scan::{ScanCompleted, ScanStarted},
+            scan::{ScanCompleted, ScanStarted, SonarCooldown},
         },
         ui::widget::{
             ColorPicked, ColorPicker, Corner, HudButton, HudPanel, HudSlider, ROW_HEIGHT,
@@ -21,7 +21,7 @@ use crate::{
         },
     },
     screens::Screen,
-    theme::palette::*,
+    theme::palette::{self, *},
 };
 
 /// Colors a sonar return can be calibrated to.
@@ -62,6 +62,7 @@ pub(super) fn plugin(app: &mut App) {
             sync_names,
             sync_contact_names,
             sync_selected_colors,
+            sync_sonar_cooldown,
         )
             .chain()
             .run_if(in_state(Screen::Gameplay)),
@@ -92,6 +93,10 @@ struct RowOf(SonarSignature);
 /// The footer's live readout of the scan range.
 #[derive(Component, Default, Clone)]
 struct RangeReadout;
+
+/// Sonar cooldown infos
+#[derive(Component, Default, Clone)]
+struct SonarCooldownInfo;
 
 /// Which body the panel is showing. Lives on the footer button that flips it.
 #[derive(Component, Default, Clone, Copy, PartialEq, Eq, Reflect)]
@@ -127,7 +132,11 @@ fn spawn_sonar_hud(mut commands: Commands, range: Res<ScanRange>) {
             (
                 @HudPanel {
                     @title: "SONAR :: RETURNS",
-                    @infos: {Box::new(bsn_list![]) as Box<dyn SceneList>},
+                    @infos: {Box::new(bsn_list![(
+                        label_dim("")
+                        template_value(TextColor(palette::AMBER_HIGH))
+                        SonarCooldownInfo
+                    )]) as Box<dyn SceneList>},
                     @body: {Box::new(bsn_list![
                         ({fill_list(bsn_list!())} ContactList),
                         ({fill_list(bsn_list!())} CatalogList Node { display: Display::None }),
@@ -563,6 +572,23 @@ fn sync_selected_colors(
     for (row, mut selected) in &mut pickers {
         if let Some(entry) = catalog.get(&row.0) {
             selected.0 = entry.color;
+        }
+    }
+}
+
+/// Sync sonar cooldown info
+fn sync_sonar_cooldown(
+    sonar: Single<&SonarCooldown>,
+    texts: Query<&mut Text, With<SonarCooldownInfo>>,
+) {
+    for mut text in texts {
+        if sonar.timer.is_finished() {
+            *text = Text::new("> SONAR READY <");
+        } else {
+            *text = Text::new(format!(
+                "SONAR READY IN {:.1} SECONDS",
+                sonar.timer.remaining_secs()
+            ));
         }
     }
 }
