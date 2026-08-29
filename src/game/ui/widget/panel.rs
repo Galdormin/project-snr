@@ -7,7 +7,7 @@ use crate::{
     theme::palette::*,
 };
 
-/// The panel size. Fixed, so the HUD doesn't resize itself every changes.
+/// The default panel size. Fixed, so the HUD doesn't resize itself every changes.
 const PANEL_WIDTH: f32 = 560.0;
 const PANEL_HEIGHT: f32 = 340.0;
 /// Inner padding of the HUD.
@@ -20,10 +20,13 @@ pub struct HudPanelProps {
     pub title: String,
     /// Readouts pinned to the right of the title bar.
     pub infos: Box<dyn SceneList>,
-    /// The panel's contents, stacked vertically.
+    /// The panel's contents, stacked vertically. Takes every bit of height the
+    /// title bar and the footer leave it.
     pub body: Box<dyn SceneList>,
     /// The strip below the body, ruled off from it. For the panel's controls.
     pub footer: Box<dyn SceneList>,
+    /// Outer size of the panel. Fixed, so its contents can't resize the HUD.
+    pub size: Vec2,
 }
 
 impl Default for HudPanelProps {
@@ -33,6 +36,7 @@ impl Default for HudPanelProps {
             infos: Box::new(bsn_list!()),
             body: Box::new(bsn_list!()),
             footer: Box::new(bsn_list!()),
+            size: Vec2::new(PANEL_WIDTH, PANEL_HEIGHT),
         }
     }
 }
@@ -52,8 +56,8 @@ impl HudPanel {
                 padding: {UiRect::all(px(PADDING))},
                 border: {UiRect::all(px(1))},
                 border_radius: {BorderRadius::all(px(2))},
-                width: {px(PANEL_WIDTH)},
-                height: {px(PANEL_HEIGHT)},
+                width: {px(props.size.x)},
+                height: {px(props.size.y)},
             }
             BackgroundColor(HUD_BACKGROUND)
             BorderColor::all(HUD_BORDER)
@@ -67,7 +71,15 @@ impl HudPanel {
                     ]
                 ),
                 ({hrule()} Node { margin: {UiRect::horizontal(px(-PADDING))} }),
-                {props.body},
+                (
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: px(8.0),
+                        flex_grow: 1.0,
+                        min_height: px(0.0),
+                    }
+                    Children [ {props.body} ]
+                ),
                 ({hrule()} Node { margin: {UiRect::horizontal(px(-PADDING))} }),
                 {props.footer}
             ]

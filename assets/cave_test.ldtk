@@ -11,7 +11,7 @@
 	"iid": "5668ab10-96d0-11f1-b250-af98c82535a1",
 	"jsonVersion": "1.5.3",
 	"appBuildId": 473703,
-	"nextUid": 11,
+	"nextUid": 12,
 	"identifierStyle": "Capitalize",
 	"toc": [],
 	"worldLayout": "Free",
@@ -325,7 +325,45 @@
 			"limitBehavior": "MoveLastOne",
 			"pivotX": 0,
 			"pivotY": 0,
-			"fieldDefs": []
+			"fieldDefs": [
+				{
+					"identifier": "id",
+					"doc": null,
+					"__type": "String",
+					"uid": 11,
+					"type": "F_String",
+					"isArray": false,
+					"canBeNull": false,
+					"arrayMinLength": null,
+					"arrayMaxLength": null,
+					"editorDisplayMode": "ValueOnly",
+					"editorDisplayScale": 1,
+					"editorDisplayPos": "Above",
+					"editorLinkStyle": "StraightArrow",
+					"editorDisplayColor": null,
+					"editorAlwaysShow": true,
+					"editorShowInWorld": true,
+					"editorCutLongValues": true,
+					"editorTextSuffix": null,
+					"editorTextPrefix": null,
+					"useForSmartColor": false,
+					"exportToToc": false,
+					"searchable": false,
+					"min": null,
+					"max": null,
+					"regex": null,
+					"acceptFileTypes": null,
+					"defaultOverride": null,
+					"textLanguageMode": null,
+					"symmetricalRef": false,
+					"autoChainRef": true,
+					"allowOutOfLevelRef": true,
+					"allowedRefs": "OnlySame",
+					"allowedRefsEntityUid": null,
+					"allowedRefTags": [],
+					"tilesetUid": null
+				}
+			]
 		}
 	], "tilesets": [
 		{
@@ -505,7 +543,10 @@
 							"height": 8,
 							"defUid": 10,
 							"px": [384,232],
-							"fieldInstances": [],
+							"fieldInstances": [{ "__identifier": "id", "__type": "String", "__value": "15a-685", "__tile": null, "defUid": 11, "realEditorValues": [{
+								"id": "V_String",
+								"params": ["15a-685"]
+							}] }],
 							"__worldX": -632,
 							"__worldY": -456
 						}

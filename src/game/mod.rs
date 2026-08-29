@@ -3,7 +3,7 @@
 use avian2d::prelude::*;
 use bevy::prelude::*;
 
-mod beacon;
+pub mod beacon;
 mod camera;
 pub mod creatures;
 pub mod drone;

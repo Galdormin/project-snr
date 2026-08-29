@@ -2,11 +2,12 @@
 //!
 //! [`widget`] holds the reusable pieces; each sibling module is one panel.
 
+mod beacon;
 mod sonar;
 pub mod widget;
 
 use bevy::prelude::*;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins((widget::plugin, sonar::plugin));
+    app.add_plugins((widget::plugin, beacon::plugin, sonar::plugin));
 }
