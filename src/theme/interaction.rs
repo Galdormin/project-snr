@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy_seedling::sample::{AudioSample, SamplePlayer};
 
-use crate::{asset_tracking::LoadResource, audio::sound_effect};
+use crate::asset_tracking::LoadResource;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_observer(apply_interaction_palette_on_click);
@@ -72,9 +73,9 @@ fn apply_interaction_palette_on_out(
 #[reflect(Resource)]
 struct InteractionAssets {
     #[dependency]
-    hover: Handle<AudioSource>,
+    hover: Handle<AudioSample>,
     #[dependency]
-    click: Handle<AudioSource>,
+    click: Handle<AudioSample>,
 }
 
 impl FromWorld for InteractionAssets {
@@ -94,7 +95,7 @@ fn play_sound_effect_on_click(
     mut commands: Commands,
 ) {
     if interaction_entities.contains(on.event_target()) {
-        commands.spawn(sound_effect(interaction_assets.click.clone()));
+        commands.spawn(SamplePlayer::new(interaction_assets.click.clone()));
     }
 }
 
@@ -105,6 +106,6 @@ fn play_sound_effect_on_over(
     mut commands: Commands,
 ) {
     if interaction_entities.contains(on.event_target()) {
-        commands.spawn(sound_effect(interaction_assets.hover.clone()));
+        commands.spawn(SamplePlayer::new(interaction_assets.hover.clone()));
     }
 }

@@ -2,7 +2,11 @@
 //!
 //! Additional settings and accessibility options should go here.
 
-use bevy::{audio::Volume, input::common_conditions::input_just_pressed, prelude::*};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy_seedling::{
+    firewheel::Volume, node::label::MainBus, nodes::core::VolumeNode,
+    utils::perceptual_volume::PerceptualVolume,
+};
 
 use crate::{menus::Menu, screens::Screen, theme::prelude::*};
 
@@ -13,10 +17,7 @@ pub(super) fn plugin(app: &mut App) {
         go_back.run_if(in_state(Menu::Settings).and_then(input_just_pressed(KeyCode::Escape))),
     );
 
-    app.add_systems(
-        Update,
-        update_global_volume_label.run_if(in_state(Menu::Settings)),
-    );
+    app.add_systems(Update, update_master_label.run_if(in_state(Menu::Settings)));
 }
 
 fn spawn_settings_menu(mut commands: Commands) {
@@ -63,7 +64,7 @@ fn global_volume_widget() -> impl Bundle {
             ..default()
         },
         children![
-            widget::button_small("-", lower_global_volume),
+            widget::button_small("-", lower_master),
             (
                 Name::new("Current Volume"),
                 Node {
@@ -71,35 +72,48 @@ fn global_volume_widget() -> impl Bundle {
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
-                children![(widget::label(""), GlobalVolumeLabel)],
+                children![(widget::label(""), MasterVolumeLabel)],
             ),
-            widget::button_small("+", raise_global_volume),
+            widget::button_small("+", raise_master),
         ],
     )
 }
 
-const MIN_VOLUME: f32 = 0.0;
-const MAX_VOLUME: f32 = 3.0;
+const CONVERTER: PerceptualVolume = PerceptualVolume::new();
 
-fn lower_global_volume(_: On<Pointer<Click>>, mut global_volume: ResMut<GlobalVolume>) {
-    let linear = (global_volume.volume.to_linear() - 0.1).max(MIN_VOLUME);
-    global_volume.volume = Volume::Linear(linear);
+const MIN_VOLUME: f32 = 0.0;
+const MAX_VOLUME: f32 = 2.0;
+const STEP: f32 = 0.1;
+
+fn increment_volume(volume: Volume) -> Volume {
+    let perceptual = CONVERTER.volume_to_perceptual(volume);
+    let new_perceptual = (perceptual + STEP).min(MAX_VOLUME);
+    CONVERTER.perceptual_to_volume(new_perceptual)
 }
 
-fn raise_global_volume(_: On<Pointer<Click>>, mut global_volume: ResMut<GlobalVolume>) {
-    let linear = (global_volume.volume.to_linear() + 0.1).min(MAX_VOLUME);
-    global_volume.volume = Volume::Linear(linear);
+fn decrement_volume(volume: Volume) -> Volume {
+    let perceptual = CONVERTER.volume_to_perceptual(volume);
+    let new_perceptual = (perceptual - STEP).max(MIN_VOLUME);
+    CONVERTER.perceptual_to_volume(new_perceptual)
+}
+
+fn lower_master(_: On<Pointer<Click>>, mut master: Single<&mut VolumeNode, With<MainBus>>) {
+    master.volume = decrement_volume(master.volume);
+}
+
+fn raise_master(_: On<Pointer<Click>>, mut master: Single<&mut VolumeNode, With<MainBus>>) {
+    master.volume = increment_volume(master.volume);
 }
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-struct GlobalVolumeLabel;
+struct MasterVolumeLabel;
 
-fn update_global_volume_label(
-    global_volume: Res<GlobalVolume>,
-    mut label: Single<&mut Text, With<GlobalVolumeLabel>>,
+fn update_master_label(
+    master: Single<&VolumeNode, (With<MainBus>, Changed<VolumeNode>)>,
+    mut label: Single<&mut Text, With<MasterVolumeLabel>>,
 ) {
-    let percent = 100.0 * global_volume.volume.to_linear();
+    let percent = CONVERTER.volume_to_perceptual(master.volume) * 100.0;
     label.0 = format!("{percent:3.0}%");
 }
 

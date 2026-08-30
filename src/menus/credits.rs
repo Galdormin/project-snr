@@ -1,8 +1,12 @@
 //! The credits menu.
 
 use bevy::{ecs::spawn::SpawnIter, input::common_conditions::input_just_pressed, prelude::*};
+use bevy_seedling::{
+    context::graph::MusicPool,
+    sample::{AudioSample, SamplePlayer},
+};
 
-use crate::{asset_tracking::LoadResource, audio::music, menus::Menu, theme::prelude::*};
+use crate::{asset_tracking::LoadResource, menus::Menu, theme::prelude::*};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(OnEnter(Menu::Credits), spawn_credits_menu);
@@ -89,7 +93,7 @@ fn go_back(mut next_menu: ResMut<NextState<Menu>>) {
 #[reflect(Resource)]
 struct CreditsAssets {
     #[dependency]
-    music: Handle<AudioSource>,
+    music: Handle<AudioSample>,
 }
 
 impl FromWorld for CreditsAssets {
@@ -105,6 +109,7 @@ fn start_credits_music(mut commands: Commands, credits_music: Res<CreditsAssets>
     commands.spawn((
         Name::new("Credits Music"),
         DespawnOnExit(Menu::Credits),
-        music(credits_music.music.clone()),
+        MusicPool,
+        SamplePlayer::new(credits_music.music.clone()).looping(),
     ));
 }

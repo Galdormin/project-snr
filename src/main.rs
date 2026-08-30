@@ -4,7 +4,6 @@
 #![cfg_attr(not(feature = "dev"), windows_subsystem = "windows")]
 
 mod asset_tracking;
-mod audio;
 #[cfg(feature = "dev")]
 mod dev_tools;
 mod game;
@@ -14,6 +13,7 @@ mod theme;
 
 use bevy::{asset::AssetMetaCheck, prelude::*};
 use bevy_enhanced_input::EnhancedInputPlugin;
+use bevy_seedling::SeedlingPlugins;
 
 use crate::theme::palette;
 
@@ -47,12 +47,11 @@ impl Plugin for AppPlugin {
         );
 
         // Third Party Plugins
-        app.add_plugins(EnhancedInputPlugin);
+        app.add_plugins((EnhancedInputPlugin, SeedlingPlugins));
 
         // Add other plugins.
         app.add_plugins((
             asset_tracking::plugin,
-            audio::plugin,
             #[cfg(feature = "dev")]
             dev_tools::plugin,
             game::plugin,

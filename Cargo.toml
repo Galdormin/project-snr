@@ -9,12 +9,14 @@ rand = "0.10"
 serde = { version="1", features = ["derive"] }
 thiserror = "2"
 toml = "1"
+ron = "0.12"
 
-bevy = { version = "0.19", default-features = false, features = ["2d", "ui", "audio", "wayland", "tonemapping_luts", "zstd_rust"] }
+bevy = { version = "0.19", default-features = false, features = ["2d", "ui", "wayland", "tonemapping_luts", "zstd_rust"] }
 bevy_ecs_ldtk = { version = "0.15", default-features = false, features = ["internal_levels", "derive"]}
 bevy_ecs_tilemap = { version = "0.19", default-features = false }
 bevy_enhanced_input = "0.26"
 avian2d = "0.7"
+bevy_seedling = { version = "0.8", features = ["effects"] }
 
 # Compile out low-severity logs to improve performance.
 # Remove these features if you want to profile your game with tracy.
@@ -23,7 +25,6 @@ tracing = { version = "0.1", features = [
     "max_level_debug",
     "release_max_level_warn",
 ] }
-ron = "0.12.2"
 
 [target.wasm32-unknown-unknown.dependencies]
 getrandom = { version = "0.4", features = ["wasm_js"] }
