@@ -8,7 +8,7 @@ use bevy_seedling::prelude::VolumeNode;
 
 use crate::{
     game::{
-        sound::{AmbientBus, DEFAULT_AMBIENT_GAIN, DEFAULT_SONAR_GAIN, SonarBus, VOLUME},
+        audio::{AmbientBus, DEFAULT_AMBIENT_GAIN, DEFAULT_SONAR_GAIN, SonarBus, VOLUME},
         ui::{
             OpenRightPanel, PanelId, RightPanel,
             widget::{HudButton, HudPanel, HudSlider, label, label_dim, row},
